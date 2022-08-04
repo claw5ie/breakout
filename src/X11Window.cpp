@@ -8,6 +8,22 @@ MouseCallback mouse_callback = NULL;
 void *keyboard_context = NULL;
 void *mouse_context = NULL;
 
+uint32_t start;
+
+double
+get_time ()
+{
+  struct timespec ts;
+
+  if (timespec_get (&ts, TIME_UTC) == 0)
+    {
+      std::fputs ("ERROR: failed to retrieve time.\n", stderr);
+      std::exit (EXIT_FAILURE);
+    }
+
+  return (double)(ts.tv_sec - start) + ts.tv_nsec * 1e-9;
+}
+
 X11Window
 create_x11_window (uint32_t width,
                    uint32_t height,
@@ -92,15 +108,25 @@ create_x11_window (uint32_t width,
                    &window.wm_delete_message,
                    1);
 
+  struct timespec ts;
+
+  if (timespec_get (&ts, TIME_UTC) == 0)
+    {
+      std::fputs ("ERROR: failed to initialize time.\n", stderr);
+      std::exit (EXIT_FAILURE);
+    }
+
+  start = ts.tv_sec;
+
   return window;
 }
 
 void
 close (X11Window &window)
 {
-  glXDestroyContext(window.display, window.context);
-  XDestroyWindow(window.display, window.handle);
-  XCloseDisplay(window.display);
+  glXDestroyContext (window.display, window.context);
+  XDestroyWindow (window.display, window.handle);
+  XCloseDisplay (window.display);
 }
 
 void

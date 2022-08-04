@@ -32,6 +32,9 @@ extern MouseCallback mouse_callback;
 extern void *keyboard_context;
 extern void *mouse_conntext;
 
+double
+get_time ();
+
 X11Window
 create_x11_window (uint32_t width,
                    uint32_t height,
