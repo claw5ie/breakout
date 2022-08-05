@@ -16,6 +16,109 @@
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 800
 
+struct AABB
+{
+  Vec2f pos, shape;
+};
+
+struct Breakout
+{
+  AABB *blocks;
+  size_t block_count;
+
+  AABB slab;
+  Vec2f slab_vel;
+
+  AABB ball;
+  Vec2f ball_vel;
+
+  gluint vertex_array;
+  gluint buffer[2];
+  gluint program;
+
+  static uint32_t constexpr slab_offset = 0;
+  static uint32_t constexpr ball_offset = sizeof (AABB);
+  static uint32_t constexpr block_offset = 2 * sizeof (AABB);
+};
+
+Breakout
+create_breakout ()
+{
+  static_assert (sizeof (AABB) == 4 * sizeof (float), ":(");
+
+  Breakout game;
+
+  game.block_count = 6 * 5;
+  game.blocks = (AABB *)malloc_or_exit (game.block_count * sizeof (AABB));
+
+  game.slab = {{ 0.5, -0.5 }, { 0.3, 0.05 }};
+  game.slab_vel = { 0.04, 0.0 };
+
+  game.ball = {{ 0.0, 0.8 }, { 0.05, 0.05 }};
+  game.ball_vel = { 0.1, 0.1 };
+
+  glCreateVertexArrays (1, &game.vertex_array);
+  glCreateBuffers (2, (gluint *)game.buffer);
+
+  {
+    auto vertex_shader =
+      create_shader (GL_VERTEX_SHADER, "shaders/quad.vert");
+    auto fragment_shader =
+      create_shader (GL_FRAGMENT_SHADER, "shaders/quad.frag");
+    game.program =
+      create_program (vertex_shader, fragment_shader);
+
+    glDeleteShader (vertex_shader);
+    glDeleteShader (fragment_shader);
+  }
+
+  glBindVertexArray (game.vertex_array);
+
+  glBindBuffer (GL_ARRAY_BUFFER, game.buffer[0]);
+  glVertexAttribPointer (0, 2, GL_FLOAT, GL_FALSE, 0, (void *)0);
+  glEnableVertexAttribArray (0);
+
+  glBindBuffer (GL_ARRAY_BUFFER, game.buffer[1]);
+  glVertexAttribPointer (1, 4, GL_FLOAT, GL_FALSE, 0, (void *)0);
+  glEnableVertexAttribArray (1);
+  glVertexAttribDivisor (1, 1);
+
+  {
+    Vec2f quad[4] = {{ 0.0, 0.0 },
+                     { 1.0, 0.0 },
+                     { 0.0, 1.0 },
+                     { 1.0, 1.0 }};
+
+    glBindBuffer (GL_ARRAY_BUFFER, game.buffer[0]);
+    glBufferData (GL_ARRAY_BUFFER, sizeof (quad), quad, GL_STATIC_DRAW);
+  }
+
+  glBindBuffer (GL_ARRAY_BUFFER, game.buffer[1]);
+  glBufferData (GL_ARRAY_BUFFER,
+                (game.block_count + 2) * sizeof (AABB),
+                NULL,
+                GL_DYNAMIC_DRAW);
+
+  glBufferSubData (GL_ARRAY_BUFFER,
+                   Breakout::slab_offset,
+                   sizeof (AABB),
+                   &game.slab);
+  glBufferSubData (GL_ARRAY_BUFFER,
+                   Breakout::ball_offset,
+                   sizeof (AABB),
+                   &game.ball);
+
+  return game;
+}
+
+void
+draw (const Breakout game)
+{
+  glBindVertexArray (game.vertex_array);
+  glUseProgram (game.program);
+  glDrawArraysInstanced (GL_TRIANGLE_STRIP, 0, 4, 2);
+}
+
 int
 main (void)
 {
@@ -28,111 +131,46 @@ main (void)
       std::exit (EXIT_FAILURE);
     }
 
-  uint32_t vertex_array, vertex_buffer;
-  glCreateVertexArrays (1, &vertex_array);
-  glCreateBuffers (1, &vertex_buffer);
-
-  {
-    Vec2f quad[4] = {{ 0.0, 0.0 },
-                     { 1.0, 0.0 },
-                     { 0.0, 1.0 },
-                     { 1.0, 1.0 }};
-
-    glBindBuffer (GL_ARRAY_BUFFER, vertex_buffer);
-    glBufferData (GL_ARRAY_BUFFER, sizeof (quad), quad, GL_STATIC_DRAW);
-  }
-
-  glBindVertexArray (vertex_array);
-
-  glBindBuffer (GL_ARRAY_BUFFER, vertex_buffer);
-  glVertexAttribPointer (0, 2, GL_FLOAT, GL_FALSE, 0, (void *)0);
-  glEnableVertexAttribArray (0);
-
-  uint32_t offsets, scales;
-  glCreateBuffers (1, &offsets);
-  glCreateBuffers (1, &scales);
-
-  glBindBuffer (GL_ARRAY_BUFFER, offsets);
-  glVertexAttribPointer (1, 2, GL_FLOAT, GL_FALSE, 0, (void *)0);
-  glEnableVertexAttribArray (1);
-  glVertexAttribDivisor (1, 1);
-
-  glBindBuffer (GL_ARRAY_BUFFER, scales);
-  glVertexAttribPointer (2, 2, GL_FLOAT, GL_FALSE, 0, (void *)0);
-  glEnableVertexAttribArray (2);
-  glVertexAttribDivisor (2, 1);
-
-  Vec2f offset[2] = {{ 0.5, -0.5 }, { 0.0, 0.8 }};
-  Vec2f scale[2] = {{ 0.3, 0.05 }, { 0.05, 0.05 }};
-
-  glBindBuffer (GL_ARRAY_BUFFER, offsets);
-  glBufferData (GL_ARRAY_BUFFER,
-                sizeof (offset),
-                (Vec2f *)&offset,
-                GL_DYNAMIC_DRAW);
-  glBindBuffer (GL_ARRAY_BUFFER, scales);
-  glBufferData (GL_ARRAY_BUFFER,
-                sizeof (scale),
-                (Vec2f *)&scale,
-                GL_DYNAMIC_DRAW);
-
-  auto const program =
-    []() -> gluint
-    {
-      auto vertex_shader =
-        create_shader (GL_VERTEX_SHADER, "shaders/quad.vert");
-      auto fragment_shader =
-        create_shader (GL_FRAGMENT_SHADER, "shaders/quad.frag");
-      auto program = create_program (vertex_shader, fragment_shader);
-
-      glDeleteShader (vertex_shader);
-      glDeleteShader (fragment_shader);
-
-      return program;
-    } ();
+  Breakout game = create_breakout ();
 
   struct KeyboardContext
   {
-    gluint offsets_buffer;
-    Vec2f *offset;
+    Breakout &game;
     float dt;
   };
 
-  KeyboardContext key_context = { offsets, &offset[0], 0 };
+  KeyboardContext key_context = { game, 0 };
 
   keyboard_context = (void *)&key_context;
   keyboard_callback =
-    [](X11Window &window, KeySym keysym, void *context_ptr) -> void
+    [](X11Window &window, KeySym keysym, void *data) -> void
     {
-      KeyboardContext context = *(KeyboardContext *)context_ptr;
+      KeyboardContext c = *(KeyboardContext *)data;
 
-      Vec2f velocity = { 0.04, 0.0 };
+      bool should_update = false;
 
       if (keysym == XK_a)
         {
-          *context.offset -= velocity;
-
-          glBindBuffer (GL_ARRAY_BUFFER, context.offsets_buffer);
-          glBufferSubData (GL_ARRAY_BUFFER,
-                           0,
-                           sizeof (Vec2f),
-                           context.offset);
+          c.game.slab.pos -= c.game.slab_vel;
+          should_update = true;
         }
       else if (keysym == XK_d)
         {
-          *context.offset += velocity;
+          c.game.slab.pos += c.game.slab_vel;
+          should_update = true;
+        }
 
-          glBindBuffer (GL_ARRAY_BUFFER, context.offsets_buffer);
+      if (should_update)
+        {
+          glBindBuffer (GL_ARRAY_BUFFER, c.game.buffer[1]);
           glBufferSubData (GL_ARRAY_BUFFER,
-                           0,
+                           Breakout::slab_offset,
                            sizeof (Vec2f),
-                           context.offset);
+                           &c.game.slab.pos);
         }
 
       window.should_close = (keysym == XK_Escape);
     };
-
-  glUseProgram (program);
 
   glClearColor (0.4, 0.4, 0.4, 1.0);
 
@@ -152,7 +190,7 @@ main (void)
 
       glClear (GL_COLOR_BUFFER_BIT);
 
-      glDrawArraysInstanced (GL_TRIANGLE_STRIP, 0, 4, 2);
+      draw (game);
 
       glXSwapBuffers (window.display, window.handle);
 
