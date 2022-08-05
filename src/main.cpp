@@ -55,7 +55,7 @@ create_breakout ()
   game.slab_vel = { 0.04, 0.0 };
 
   game.ball = {{ 0.0, 0.8 }, { 0.05, 0.05 }};
-  game.ball_vel = { 0.1, 0.1 };
+  game.ball_vel = { 0.01, 0.01 };
 
   glCreateVertexArrays (1, &game.vertex_array);
   glCreateBuffers (2, (gluint *)game.buffer);
@@ -103,6 +103,7 @@ create_breakout ()
                    Breakout::slab_offset,
                    sizeof (AABB),
                    &game.slab);
+
   glBufferSubData (GL_ARRAY_BUFFER,
                    Breakout::ball_offset,
                    sizeof (AABB),
@@ -112,7 +113,26 @@ create_breakout ()
 }
 
 void
-draw (const Breakout game)
+update (Breakout &game)
+{
+  if (game.ball.pos.x <= -1
+      || game.ball.pos.x + game.ball.shape.x >= 1)
+    game.ball_vel.x = -game.ball_vel.x;
+  else if (game.ball.pos.y <= -1
+           || game.ball.pos.y + game.ball.shape.y >= 1)
+    game.ball_vel.y = -game.ball_vel.y;
+
+  game.ball.pos += game.ball_vel;
+
+  glBindBuffer (GL_ARRAY_BUFFER, game.buffer[1]);
+  glBufferSubData (GL_ARRAY_BUFFER,
+                   Breakout::ball_offset,
+                   sizeof (AABB),
+                   &game.ball);
+}
+
+void
+draw (const Breakout &game)
 {
   glBindVertexArray (game.vertex_array);
   glUseProgram (game.program);
@@ -165,8 +185,8 @@ main (void)
           glBindBuffer (GL_ARRAY_BUFFER, c.game.buffer[1]);
           glBufferSubData (GL_ARRAY_BUFFER,
                            Breakout::slab_offset,
-                           sizeof (Vec2f),
-                           &c.game.slab.pos);
+                           sizeof (AABB),
+                           &c.game.slab);
         }
 
       window.should_close = (keysym == XK_Escape);
@@ -190,6 +210,7 @@ main (void)
 
       glClear (GL_COLOR_BUFFER_BIT);
 
+      update (game);
       draw (game);
 
       glXSwapBuffers (window.display, window.handle);
