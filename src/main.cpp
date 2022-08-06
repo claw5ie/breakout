@@ -283,7 +283,7 @@ main (void)
   keyboard_callback =
     [](X11Window &window, KeySym keysym, void *data) -> void
     {
-      Breakout game = *(Breakout *)data;
+      Breakout &game = *(Breakout *)data;
 
       bool should_update = false;
 
