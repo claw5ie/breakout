@@ -171,7 +171,7 @@ parametric_intersect (const AABB &l1, const AABB &l2)
 Direction
 hit_direction (const AABB &static_, const AABB &moving_, const Vec2f &vel)
 {
-  if (moving_.pos.x > static_.pos.x || moving_.pos.y > static_.pos.y)
+  if (moving_.pos.x > static_.pos.x && moving_.pos.y > static_.pos.y)
     {
       float lambda =
         parametric_intersect ({ static_.pos + static_.shape, { 0, -1 } },
