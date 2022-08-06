@@ -289,12 +289,12 @@ main (void)
 
       bool should_update = false;
 
-      if (keysym == XK_a)
+      if (keysym == XK_a && game.slab.pos.x > -1)
         {
           game.slab.pos -= game.slab_vel;
           should_update = true;
         }
-      else if (keysym == XK_d)
+      else if (keysym == XK_d && game.slab.pos.x + game.slab.shape.x < 1)
         {
           game.slab.pos += game.slab_vel;
           should_update = true;
