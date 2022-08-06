@@ -177,10 +177,7 @@ hit_direction (const AABB &static_, const AABB &moving_, const Vec2f &vel)
         parametric_intersect ({ static_.pos + static_.shape, { 0, -1 } },
                               { moving_.pos, vel }).x;
 
-      if (0 <= lambda && lambda <= static_.shape.y)
-        return Right;
-      else
-        return Up;
+      return 0 <= lambda && lambda <= static_.shape.y ? Right : Up;
     }
   else
     {
@@ -188,10 +185,7 @@ hit_direction (const AABB &static_, const AABB &moving_, const Vec2f &vel)
         parametric_intersect ({ static_.pos, { 0, 1 } },
                               { moving_.pos + moving_.shape, vel }).x;
 
-      if (0 <= lambda && lambda <= static_.shape.y)
-        return Left;
-      else
-        return Down;
+      return 0 <= lambda && lambda <= static_.shape.y ? Left : Down;
     }
 }
 
