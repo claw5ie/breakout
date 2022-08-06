@@ -93,6 +93,28 @@ create_breakout ()
     glBufferData (GL_ARRAY_BUFFER, sizeof (quad), quad, GL_STATIC_DRAW);
   }
 
+  {
+    float x_offset = 0.04, y_offset = 0.04;
+    AABB block =
+      {{ -1 + x_offset, 1 - y_offset },
+       { (2 - (6 + 1) * x_offset) / 6, 0.05 }};
+
+    block.pos.y -= block.shape.y;
+
+    for (size_t i = 0; i < game.block_count; )
+      {
+        game.blocks[i] = block;
+
+        if (++i % 6 != 0)
+          block.pos.x += x_offset + block.shape.x;
+        else
+          {
+            block.pos.x = -1 + x_offset;
+            block.pos.y -= y_offset + block.shape.y;
+          }
+      }
+  }
+
   glBindBuffer (GL_ARRAY_BUFFER, game.buffer[1]);
   glBufferData (GL_ARRAY_BUFFER,
                 (game.block_count + 2) * sizeof (AABB),
@@ -108,6 +130,11 @@ create_breakout ()
                    Breakout::ball_offset,
                    sizeof (AABB),
                    &game.ball);
+
+  glBufferSubData (GL_ARRAY_BUFFER,
+                   Breakout::block_offset,
+                   game.block_count * sizeof (AABB),
+                   game.blocks);
 
   return game;
 }
@@ -136,7 +163,7 @@ draw (const Breakout &game)
 {
   glBindVertexArray (game.vertex_array);
   glUseProgram (game.program);
-  glDrawArraysInstanced (GL_TRIANGLE_STRIP, 0, 4, 2);
+  glDrawArraysInstanced (GL_TRIANGLE_STRIP, 0, 4, 2 + game.block_count);
 }
 
 int
