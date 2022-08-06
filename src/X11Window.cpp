@@ -121,6 +121,11 @@ close (X11Window &window)
 void
 process_events (X11Window &window)
 {
+  static bool was_a_pressed = false;
+  static bool was_d_pressed = false;
+
+  bool should_repeat = true;
+
   int pending = XPending (window.display);
 
   while (pending-- > 0)
@@ -131,11 +136,47 @@ process_events (X11Window &window)
       switch (xevent.type)
         {
         case KeyPress:
+          {
+            KeySym key = XLookupKeysym (&xevent.xkey, 0);
+
+            if (key == XK_a)
+              {
+                was_a_pressed = true;
+                should_repeat = false;
+              }
+            else if (key == XK_d)
+              {
+                was_d_pressed = true;
+                should_repeat = false;
+              }
+
+            if (keyboard_callback != NULL)
+              keyboard_callback (window, key, keyboard_context);
+          }
+
+          break;
         case KeyRelease:
-          if (keyboard_callback != NULL)
-            keyboard_callback (window,
-                               XLookupKeysym (&xevent.xkey, 0),
-                               keyboard_context);
+          {
+            if (XEventsQueued (window.display, QueuedAfterReading) > 0)
+              {
+                XEvent next;
+                XPeekEvent (window.display, &next);
+
+                if (next.type == KeyPress
+                    && next.xkey.window == xevent.xkey.window
+                    && next.xkey.keycode == xevent.xkey.keycode
+                    && next.xkey.time == xevent.xkey.time)
+                  continue;
+              }
+
+            KeySym key = XLookupKeysym (&xevent.xkey, 0);
+
+            if (key == XK_a)
+              was_a_pressed = false;
+            else if (key == XK_d)
+              was_d_pressed = false;
+          }
+
           break;
         case ButtonPress:
           if (mouse_callback != NULL)
@@ -146,5 +187,13 @@ process_events (X11Window &window)
             ((Atom)xevent.xclient.data.l[0] == window.wm_delete_message);
           break;
         }
+    }
+
+  if (should_repeat && (was_a_pressed || was_d_pressed))
+    {
+      if (keyboard_callback != NULL)
+        keyboard_callback (window,
+                           was_a_pressed ? XK_a : XK_d,
+                           keyboard_context);
     }
 }
