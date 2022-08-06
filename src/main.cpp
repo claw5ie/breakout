@@ -194,7 +194,7 @@ resolve_collisions (Breakout &game)
 {
   for (size_t i = 0; i < game.block_count; i++)
     {
-      AABB block = game.blocks[i];
+      AABB &block = game.blocks[i];
 
       if (do_intersect (game.ball, block))
         {
@@ -209,6 +209,14 @@ resolve_collisions (Breakout &game)
               game.ball_vel.y = -game.ball_vel.y;
               break;
             }
+
+          block.pos = { -2, -2 };
+
+          glBindBuffer (GL_ARRAY_BUFFER, game.buffer[1]);
+          glBufferSubData (GL_ARRAY_BUFFER,
+                           Breakout::block_offset + i * sizeof (AABB),
+                           sizeof (AABB),
+                           &game.blocks[i]);
 
           break;
         }
