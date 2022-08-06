@@ -155,11 +155,11 @@ enum Direction
 
 // Interpret "pos" as point and "shape" as vector (direction of the line).
 Vec2f
-parametric_insersect (const AABB &aabb_as_line1,
+parametric_intersect (const AABB &aabb_as_line1,
                       const AABB &aabb_as_line2);
 
 Vec2f
-parametric_insersect (const AABB &l1, const AABB &l2)
+parametric_intersect (const AABB &l1, const AABB &l2)
 {
   float area = cross (l1.shape, l2.shape);
   Vec2f delta = l2.pos - l1.pos;
@@ -174,7 +174,7 @@ hit_direction (const AABB &static_, const AABB &moving_, const Vec2f &vel)
   if (moving_.pos.x > static_.pos.x || moving_.pos.y > static_.pos.y)
     {
       float lambda =
-        parametric_insersect ({ static_.pos + static_.shape, { 0, -1 } },
+        parametric_intersect ({ static_.pos + static_.shape, { 0, -1 } },
                               { moving_.pos, vel }).x;
 
       if (0 <= lambda && lambda <= static_.shape.y)
@@ -185,7 +185,7 @@ hit_direction (const AABB &static_, const AABB &moving_, const Vec2f &vel)
   else
     {
       float lambda =
-        parametric_insersect ({ static_.pos, { 0, 1 } },
+        parametric_intersect ({ static_.pos, { 0, 1 } },
                               { moving_.pos + moving_.shape, vel }).x;
 
       if (0 <= lambda && lambda <= static_.shape.y)
