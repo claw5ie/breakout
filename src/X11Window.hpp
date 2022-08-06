@@ -32,7 +32,7 @@ extern void *keyboard_context;
 extern void *mouse_conntext;
 
 double
-get_time ();
+gettime ();
 
 X11Window
 create_x11_window (uint32_t width,

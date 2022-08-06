@@ -8,18 +8,14 @@ MouseCallback mouse_callback = NULL;
 void *keyboard_context = NULL;
 void *mouse_context = NULL;
 
-time_t when_window_was_created;
+time_t when_window_was_created = 0;
 
 double
-get_time ()
+gettime ()
 {
   struct timespec ts;
 
-  if (timespec_get (&ts, TIME_UTC) == 0)
-    {
-      std::fputs ("ERROR: failed to retrieve time.\n", stderr);
-      std::exit (EXIT_FAILURE);
-    }
+  clock_gettime (CLOCK_MONOTONIC, &ts);
 
   return (double)(ts.tv_sec - when_window_was_created) + ts.tv_nsec * 1e-9;
 }
@@ -110,11 +106,7 @@ create_x11_window (uint32_t width,
 
   struct timespec ts;
 
-  if (timespec_get (&ts, TIME_UTC) == 0)
-    {
-      std::fputs ("ERROR: failed to initialize time.\n", stderr);
-      std::exit (EXIT_FAILURE);
-    }
+  clock_gettime (CLOCK_MONOTONIC, &ts);
 
   when_window_was_created = ts.tv_sec;
 

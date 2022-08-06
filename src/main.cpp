@@ -233,7 +233,7 @@ main (void)
 
   while (!window.should_close)
     {
-      double const start = get_time ();
+      double const start = gettime ();
 
       glClear (GL_COLOR_BUFFER_BIT);
 
@@ -244,7 +244,7 @@ main (void)
 
       process_events (window);
 
-      dt = get_time () - start;
+      dt = gettime () - start;
       key_context.dt = dt;
     }
 
