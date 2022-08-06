@@ -180,40 +180,32 @@ main (void)
 
   Breakout game = create_breakout ();
 
-  struct KeyboardContext
-  {
-    Breakout &game;
-    float dt;
-  };
-
-  KeyboardContext key_context = { game, 0 };
-
-  keyboard_context = (void *)&key_context;
+  keyboard_context = (void *)&game;
   keyboard_callback =
     [](X11Window &window, KeySym keysym, void *data) -> void
     {
-      KeyboardContext c = *(KeyboardContext *)data;
+      Breakout game = *(Breakout *)data;
 
       bool should_update = false;
 
       if (keysym == XK_a)
         {
-          c.game.slab.pos -= c.game.slab_vel;
+          game.slab.pos -= game.slab_vel;
           should_update = true;
         }
       else if (keysym == XK_d)
         {
-          c.game.slab.pos += c.game.slab_vel;
+          game.slab.pos += game.slab_vel;
           should_update = true;
         }
 
       if (should_update)
         {
-          glBindBuffer (GL_ARRAY_BUFFER, c.game.buffer[1]);
+          glBindBuffer (GL_ARRAY_BUFFER, game.buffer[1]);
           glBufferSubData (GL_ARRAY_BUFFER,
                            Breakout::slab_offset,
                            sizeof (AABB),
-                           &c.game.slab);
+                           &game.slab);
         }
 
       window.should_close = (keysym == XK_Escape);
@@ -229,12 +221,8 @@ main (void)
   if (GLX_EXT_swap_control)
     glXSwapIntervalEXT (window.display, window.handle, 1);
 
-  double dt = 0;
-
   while (!window.should_close)
     {
-      double const start = gettime ();
-
       glClear (GL_COLOR_BUFFER_BIT);
 
       update (game);
@@ -243,9 +231,6 @@ main (void)
       glXSwapBuffers (window.display, window.handle);
 
       process_events (window);
-
-      dt = gettime () - start;
-      key_context.dt = dt;
     }
 
   close (window);
