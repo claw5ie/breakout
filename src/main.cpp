@@ -51,11 +51,11 @@ create_breakout ()
   game.block_count = 6 * 5;
   game.blocks = (AABB *)malloc_or_exit (game.block_count * sizeof (AABB));
 
-  game.slab = {{ 0.5, -0.5 }, { 0.3, 0.05 }};
+  game.slab = { { 0.5, -0.5 }, { 0.3, 0.05 } };
   game.slab_vel = { 0.04, 0.0 };
 
-  game.ball = {{ 0.0, 0.8 }, { 0.05, 0.05 }};
-  game.ball_vel = { 0.01, 0.01 };
+  game.ball = { { 0.0, -0.8 }, { 0.05, 0.05 } };
+  game.ball_vel = { 0.02, 0.01 };
 
   glCreateVertexArrays (1, &game.vertex_array);
   glCreateBuffers (2, (gluint *)game.buffer);
@@ -84,10 +84,10 @@ create_breakout ()
   glVertexAttribDivisor (1, 1);
 
   {
-    Vec2f quad[4] = {{ 0.0, 0.0 },
-                     { 1.0, 0.0 },
-                     { 0.0, 1.0 },
-                     { 1.0, 1.0 }};
+    Vec2f quad[4] = { { 0.0, 0.0 },
+                      { 1.0, 0.0 },
+                      { 0.0, 1.0 },
+                      { 1.0, 1.0 } };
 
     glBindBuffer (GL_ARRAY_BUFFER, game.buffer[0]);
     glBufferData (GL_ARRAY_BUFFER, sizeof (quad), quad, GL_STATIC_DRAW);
@@ -96,8 +96,8 @@ create_breakout ()
   {
     float x_offset = 0.04, y_offset = 0.04;
     AABB block =
-      {{ -1 + x_offset, 1 - y_offset },
-       { (2 - (6 + 1) * x_offset) / 6, 0.05 }};
+      { { -1 + x_offset, 1 - y_offset },
+        { (2 - (6 + 1) * x_offset) / 6, 0.05 } };
 
     block.pos.y -= block.shape.y;
 
@@ -139,6 +139,103 @@ create_breakout ()
   return game;
 }
 
+bool
+do_intersect (const AABB &x, const AABB &y)
+{
+  return !(x.pos.x + x.shape.x < y.pos.x
+           || x.pos.x > y.pos.x + y.shape.x
+           || x.pos.y + x.shape.y < y.pos.y
+           || x.pos.y > y.pos.y + y.shape.y);
+}
+
+enum Direction
+  {
+   Left, Right, Down, Up
+  };
+
+// Interpret "pos" as point and "shape" as vector (direction of the line).
+Vec2f
+parametric_insersect (const AABB &aabb_as_line1,
+                      const AABB &aabb_as_line2);
+
+Vec2f
+parametric_insersect (const AABB &l1, const AABB &l2)
+{
+  float area = cross (l1.shape, l2.shape);
+  Vec2f delta = l2.pos - l1.pos;
+
+  return { cross (delta, l2.shape) / area,
+           cross (delta, l1.shape) / area };
+}
+
+Direction
+hit_direction (const AABB &static_, const AABB &moving_, const Vec2f &vel)
+{
+  if (moving_.pos.x > static_.pos.x || moving_.pos.y > static_.pos.y)
+    {
+      float lambda =
+        parametric_insersect ({ static_.pos + static_.shape, { 0, -1 } },
+                              { moving_.pos, vel }).x;
+
+      if (0 <= lambda && lambda <= static_.shape.y)
+        return Right;
+      else
+        return Up;
+    }
+  else
+    {
+      float lambda =
+        parametric_insersect ({ static_.pos, { 0, 1 } },
+                              { moving_.pos + moving_.shape, vel }).x;
+
+      if (0 <= lambda && lambda <= static_.shape.y)
+        return Left;
+      else
+        return Down;
+    }
+}
+
+void
+resolve_collisions (Breakout &game)
+{
+  for (size_t i = 0; i < game.block_count; i++)
+    {
+      AABB block = game.blocks[i];
+
+      if (do_intersect (game.ball, block))
+        {
+          switch (hit_direction (block, game.ball, game.ball_vel))
+            {
+            case Left:
+            case Right:
+              game.ball_vel.x = -game.ball_vel.x;
+              break;
+            case Down:
+            case Up:
+              game.ball_vel.y = -game.ball_vel.y;
+              break;
+            }
+
+          break;
+        }
+    }
+
+  if (do_intersect (game.ball, game.slab))
+    {
+      switch (hit_direction (game.slab, game.ball, game.ball_vel))
+        {
+        case Left:
+        case Right:
+          game.ball_vel.x = -game.ball_vel.x;
+          break;
+        case Down:
+        case Up:
+          game.ball_vel.y = -game.ball_vel.y;
+          break;
+        }
+    }
+}
+
 void
 update (Breakout &game)
 {
@@ -148,6 +245,8 @@ update (Breakout &game)
   else if (game.ball.pos.y <= -1
            || game.ball.pos.y + game.ball.shape.y >= 1)
     game.ball_vel.y = -game.ball_vel.y;
+
+  resolve_collisions (game);
 
   game.ball.pos += game.ball_vel;
 
