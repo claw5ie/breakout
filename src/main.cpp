@@ -51,11 +51,11 @@ create_breakout ()
   game.block_count = 6 * 5;
   game.blocks = (AABB *)malloc_or_exit (game.block_count * sizeof (AABB));
 
-  game.slab = { { 0.5, -0.5 }, { 0.3, 0.05 } };
-  game.slab_vel = { 0.04, 0.0 };
+  game.slab = { { 0.5, -0.8 }, { 0.3, 0.016 } };
+  game.slab_vel = { 0.03, 0.0 };
 
   game.ball = { { 0.0, -0.8 }, { 0.05, 0.05 } };
-  game.ball_vel = { 0.02, 0.01 };
+  game.ball_vel = { 0.01, 0.01 };
 
   glCreateVertexArrays (1, &game.vertex_array);
   glCreateBuffers (2, (gluint *)game.buffer);
