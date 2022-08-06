@@ -12,7 +12,6 @@ struct X11Window
   Window handle;
   GLXContext context;
 
-  long event_masks;
   Atom wm_delete_message;
   bool should_close;
 };

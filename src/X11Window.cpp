@@ -8,7 +8,7 @@ MouseCallback mouse_callback = NULL;
 void *keyboard_context = NULL;
 void *mouse_context = NULL;
 
-uint32_t start;
+time_t when_window_was_created;
 
 double
 get_time ()
@@ -21,7 +21,7 @@ get_time ()
       std::exit (EXIT_FAILURE);
     }
 
-  return (double)(ts.tv_sec - start) + ts.tv_nsec * 1e-9;
+  return (double)(ts.tv_sec - when_window_was_created) + ts.tv_nsec * 1e-9;
 }
 
 X11Window
@@ -64,8 +64,8 @@ create_x11_window (uint32_t width,
                                                 root,
                                                 visual->visual,
                                                 AllocNone);
-  window.event_masks = KeyPressMask | ButtonPressMask;
-  window_attributes.event_mask = window.event_masks;
+  window_attributes.event_mask =
+    KeyPressMask | KeyReleaseMask | ButtonPressMask;
   window.handle = XCreateWindow (window.display,
                                  root,
                                  0,
@@ -116,7 +116,7 @@ create_x11_window (uint32_t width,
       std::exit (EXIT_FAILURE);
     }
 
-  start = ts.tv_sec;
+  when_window_was_created = ts.tv_sec;
 
   return window;
 }
@@ -132,20 +132,17 @@ close (X11Window &window)
 void
 process_events (X11Window &window)
 {
-  XEvent xevent;
+  int pending = XPending (window.display);
 
-  while (XCheckWindowEvent (window.display,
-                            window.handle,
-                            window.event_masks,
-                            &xevent) ||
-         XCheckTypedWindowEvent (window.display,
-                                 window.handle,
-                                 ClientMessage,
-                                 &xevent))
+  while (pending-- > 0)
     {
+      XEvent xevent;
+      XNextEvent (window.display, &xevent);
+
       switch (xevent.type)
         {
         case KeyPress:
+        case KeyRelease:
           if (keyboard_callback != NULL)
             keyboard_callback (window,
                                XLookupKeysym (&xevent.xkey, 0),
@@ -153,9 +150,7 @@ process_events (X11Window &window)
           break;
         case ButtonPress:
           if (mouse_callback != NULL)
-            mouse_callback (window,
-                            xevent.xbutton,
-                            mouse_context);
+            mouse_callback (window, xevent.xbutton, mouse_context);
           break;
         case ClientMessage:
           window.should_close =
