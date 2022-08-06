@@ -10,14 +10,15 @@ void *mouse_context = NULL;
 
 time_t when_window_was_created = 0;
 
-double
+time_t
 gettime ()
 {
   struct timespec ts;
 
   clock_gettime (CLOCK_MONOTONIC, &ts);
 
-  return (double)(ts.tv_sec - when_window_was_created) + ts.tv_nsec * 1e-9;
+  return (ts.tv_sec - when_window_was_created) * 1000
+    + ts.tv_nsec / 100000;
 }
 
 X11Window
@@ -104,11 +105,7 @@ create_x11_window (uint32_t width,
                    &window.wm_delete_message,
                    1);
 
-  struct timespec ts;
-
-  clock_gettime (CLOCK_MONOTONIC, &ts);
-
-  when_window_was_created = ts.tv_sec;
+  when_window_was_created = gettime () / 1000;
 
   return window;
 }

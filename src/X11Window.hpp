@@ -31,7 +31,7 @@ extern MouseCallback mouse_callback;
 extern void *keyboard_context;
 extern void *mouse_conntext;
 
-double
+time_t
 gettime ();
 
 X11Window
